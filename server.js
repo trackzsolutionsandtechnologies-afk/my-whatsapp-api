@@ -19,24 +19,28 @@ const puppeteerConfig = {
         '--no-zygote',
         '--single-process',
         '--disable-extensions',
-        // 🌟 CRITICAL CLOUD STABILIZATION FLAGS: Stops Chromium from detaching/dropping frames on GitHub Actions
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-features=MemorySaverMode',
         '--memory-pressure-off'
     ]
 };
 
-// Explicitly assign the correct paths based on the active environment
 if (isGitHub) {
-    puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable'; // Clean Linux Path
+    puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable';
 } else {
-    puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe'; // Your local Windows Path
+    puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 }
 
-// 2. Initialize Client
+// 2. Initialize Client with strict remote asset pinning to prevent frame dropping
 const client = new Client({
     authStrategy: new LocalAuth(),
-    puppeteer: puppeteerConfig
+    puppeteer: puppeteerConfig,
+    // Fixes the internal page navigation race conditions on headless cloud setups:
+    webVersion: '2.2412.54', 
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html'
+    }
 });
 
 // 3. Event Listeners for Debugging
@@ -118,29 +122,23 @@ async function sendCafeteriaReport() {
         '918157966696@c.us',
         '919656290644@c.us',
         '919446334822@c.us',
-        'https://chat.whatsapp.com/JVmWL2dyJuY8I0WlqNLscI?mode=gi_t' // 👈 Your Group Invite Link added smoothly
+        'https://chat.whatsapp.com/JVmWL2dyJuY8I0WlqNLscI?mode=gi_t'
     ];
 
     console.log('🚀 Generating report for recipients...');
     const report = await fetchCafeteriaReport();
 
-    // Loop through each recipient entry (handles individual chats and group invites seamlessly)
     for (const recipient of targetRecipients) {
         try {
             let targetId = recipient;
 
-            // Check if the recipient entry is a group invite link
             if (recipient.includes('chat.whatsapp.com/')) {
-                // Extracts the invite code out cleanly (stops before the query flags)
                 const inviteCode = recipient.split('chat.whatsapp.com/')[1].split('?')[0].trim();
                 console.log(`🔗 Resolving group link code: ${inviteCode}`);
-
-                // Joins the group automatically if not joined, and converts link to an internal target group ID (@g.us)
                 targetId = await client.acceptInvite(inviteCode);
                 console.log(`✅ Group ID resolved: ${targetId}`);
             }
 
-            // Send the message to the number or group ID
             await client.sendMessage(targetId, report.msg);
             console.log(`✅ Message sent successfully to ${targetId} at ${new Date().toLocaleTimeString()}`);
         } catch (err) {
@@ -148,10 +146,9 @@ async function sendCafeteriaReport() {
         }
     }
 
-    // Safe exit if running inside GitHub Action runner after executing task
     if (process.env.GITHUB_ACTIONS) {
         console.log('🏁 Task complete. Shutting down GitHub runner instance safely.');
-        setTimeout(() => process.exit(0), 5000); // Give it 5 seconds to finish network packets
+        setTimeout(() => process.exit(0), 5000);
     }
 }
 
@@ -161,7 +158,7 @@ function startScheduler() {
     console.log('📅 WhatsApp Scheduler Active (10:15 PM IST)');
 }
 
-// Helper function to auto-refresh terminal logs without messaging WhatsApp
+// Helper function to auto-refresh terminal logs
 function startTerminalAutoRefresh(minutes) {
     if (process.env.GITHUB_ACTIONS) return;
 
