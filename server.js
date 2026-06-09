@@ -11,7 +11,6 @@ const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
     headless: true,
-    // Disabling Content Security Policy prevents the browser from dropping the frame on fast networks
     bypassCSP: true, 
     args: [
         '--no-sandbox',
@@ -19,9 +18,8 @@ const puppeteerConfig = {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--no-zygote',
-        '--single-process',
         '--disable-extensions',
-        '--disable-web-security', // Relaxes structural execution barriers
+        '--disable-web-security',
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-features=MemorySaverMode',
         '--memory-pressure-off'
@@ -34,7 +32,7 @@ if (isGitHub) {
     puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 }
 
-// 2. Initialize Client with strict remote asset pinning
+// 2. Initialize Client with production remote asset version locking
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: puppeteerConfig,
@@ -174,9 +172,21 @@ function startTerminalAutoRefresh(minutes) {
     }, intervalMs);
 }
 
-// 7. Execution Entry
+// 7. Execution Entry with Execution Context Hold Loop
 console.log('🎬 Starting WhatsApp Web initialization sequence...');
-client.initialize().catch(err => {
-    console.error('❌ Critical Initialization Failure:', err.message);
-    process.exit(1);
-});
+
+// Injecting a safe timeout delay for Cloud execution paths before initialization triggers
+if (isGitHub) {
+    console.log('⏳ Cloud Environment detected. Holding process for 3000ms to allow local network pipelines to settle...');
+    setTimeout(() => {
+        client.initialize().catch(err => {
+            console.error('❌ Critical Initialization Failure:', err.message);
+            process.exit(1);
+        });
+    }, 3000);
+} else {
+    client.initialize().catch(err => {
+        console.error('❌ Critical Initialization Failure:', err.message);
+        process.exit(1);
+    });
+}
