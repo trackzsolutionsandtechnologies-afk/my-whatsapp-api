@@ -10,7 +10,7 @@ const fs = require('fs');
 const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
-    // Uses the modern chrome headless engine architecture to match newer runner runtimes
+    // Matches the headless architecture required by modern pinned chromium downloads
     headless: isGitHub ? 'new' : true,
     bypassCSP: true, 
     args: [
@@ -24,13 +24,14 @@ const puppeteerConfig = {
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-features=MemorySaverMode',
         '--memory-pressure-off',
-        // Spoofs a standard Windows desktop browser signature to stop Chrome from forcing context reloads
         '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
     ]
 };
 
 if (isGitHub) {
-    puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable';
+    // 🌟 THE FIX: Setting this to undefined forces Puppeteer to look directly 
+    // inside its own native cache for the matching Chrome binary we installed in the YAML
+    puppeteerConfig.executablePath = undefined; 
 } else {
     puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 }
