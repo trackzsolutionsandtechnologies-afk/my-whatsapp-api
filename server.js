@@ -7,7 +7,6 @@ const { Readable } = require('stream');
 const fs = require('fs');
 
 // 1. Determine Environment and Configuration dynamically based on OS
-// Using the official GITHUB_ACTIONS environment variable directly
 const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
@@ -20,7 +19,10 @@ const puppeteerConfig = {
         '--no-zygote',
         '--single-process',
         '--disable-extensions',
-        '--disable-features=IsolateOrigins,site-per-process' // Fixes the detached frame bug
+        // Critical flags to completely bypass Chrome's aggressive frame detachment bugs:
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--disable-features=MemorySaverMode',
+        '--memory-pressure-off'
     ]
 };
 
@@ -146,7 +148,6 @@ function startScheduler() {
 
 // Helper function to auto-refresh terminal logs without messaging WhatsApp
 function startTerminalAutoRefresh(minutes) {
-    // Disable logging loops if running a short-lived instance on GitHub Actions
     if (process.env.GITHUB_ACTIONS) return;
 
     const intervalMs = minutes * 60 * 1000;
