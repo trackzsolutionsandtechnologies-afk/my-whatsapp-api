@@ -21,16 +21,17 @@ if (process.env.WHATSAPP_SESSION_DATA) {
         console.error('❌ Failed to unpack WhatsApp session token:', error);
     }
 }
-
 // 2. Determine Puppeteer Configuration dynamically based on OS
 const isGitHub = !!process.env.WHATSAPP_SESSION_DATA;
 const puppeteerConfig = {
     headless: true,
     args: [
-        '--no-sandbox', 
+        '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--no-zygote'
+        '--disable-gpu',
+        '--no-zygote',
+        '--single-process'
     ]
 };
 
@@ -38,12 +39,6 @@ const puppeteerConfig = {
 if (!isGitHub) {
     puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 }
-
-// 3. Initialize Client
-const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: puppeteerConfig
-});
 
 // 4. Event Listeners for Debugging
 client.on('qr', (qr) => {
