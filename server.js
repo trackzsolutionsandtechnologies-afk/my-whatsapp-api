@@ -11,7 +11,8 @@ const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
     headless: true,
-    // Overriding the default navigation timeout behavior to handle aggressive cloud networks
+    // Disabling Content Security Policy prevents the browser from dropping the frame on fast networks
+    bypassCSP: true, 
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -20,6 +21,7 @@ const puppeteerConfig = {
         '--no-zygote',
         '--single-process',
         '--disable-extensions',
+        '--disable-web-security', // Relaxes structural execution barriers
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-features=MemorySaverMode',
         '--memory-pressure-off'
@@ -32,7 +34,7 @@ if (isGitHub) {
     puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 }
 
-// 2. Initialize Client with strict remote asset pinning and relaxed navigation options
+// 2. Initialize Client with strict remote asset pinning
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: puppeteerConfig,
@@ -42,9 +44,6 @@ const client = new Client({
         remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html'
     }
 });
-
-// Intercept the internal page load strategy before initialization to prevent LifecycleWatcher termination
-client.options.puppeteer.waitUntil = 'domcontentloaded'; 
 
 // 3. Event Listeners for Debugging
 client.on('qr', (qr) => {
@@ -121,10 +120,11 @@ async function fetchCafeteriaReport() {
 // 5. Send Function (Loops through multiple numbers & resolves group link)
 async function sendCafeteriaReport() {
     const targetRecipients = [
-        
-        '918157966696@c.us'
-    
-        
+        '919447064822@c.us',
+        '918157966696@c.us',
+        '919656290644@c.us',
+        '919446334822@c.us',
+        'https://chat.whatsapp.com/JVmWL2dyJuY8I0WlqNLscI?mode=gi_t'
     ];
 
     console.log('🚀 Generating report for recipients...');
@@ -174,25 +174,9 @@ function startTerminalAutoRefresh(minutes) {
     }, intervalMs);
 }
 
-// Robust boot wrapper to handle cloud-runner frame race conditions gracefully
-async function bootUpClient() {
-    try {
-        console.log('🎬 Starting WhatsApp Web initialization sequence...');
-        await client.initialize();
-    } catch (bootError) {
-        if (bootError.message.includes('detached') || bootError.message.includes('terminated')) {
-            console.warn('⚠️ Intercepted cloud runner network race condition. Retrying initial navigation step safely in 3 seconds...');
-            setTimeout(() => {
-                client.initialize().catch(err => {
-                    console.error('❌ Critical Initialization Failure on retry:', err.message);
-                    process.exit(1);
-                });
-            }, 3000);
-        } else {
-            console.error('❌ Unhandled initialization error:', bootError.message);
-            process.exit(1);
-        }
-    }
-}
-
-bootUpClient();
+// 7. Execution Entry
+console.log('🎬 Starting WhatsApp Web initialization sequence...');
+client.initialize().catch(err => {
+    console.error('❌ Critical Initialization Failure:', err.message);
+    process.exit(1);
+});
