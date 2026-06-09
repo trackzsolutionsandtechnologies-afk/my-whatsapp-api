@@ -35,9 +35,11 @@ const puppeteerConfig = {
     ]
 };
 
-// Only apply your local hardcoded Windows Chrome path if we are NOT on GitHub's Linux server
-if (!isGitHub) {
-    puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+// Direct both environments to their exact browser locations
+if (isGitHub) {
+    puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable'; // Explicit Linux path
+} else {
+    puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe'; // Your local path
 }
 
 // 4. Event Listeners for Debugging
