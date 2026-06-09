@@ -1,0 +1,12 @@
+{
+  "name": "cafeteria-bot",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "csv-parser": "^3.0.0",
+    "node-cron": "^3.0.3",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}
