@@ -34,6 +34,7 @@ jobs:
           else
             echo "⚠️ No session.zip found in repository root, attempting standard run."
           fi
+          exit 0
 
       - name: Execute Script
         run: node server.js
