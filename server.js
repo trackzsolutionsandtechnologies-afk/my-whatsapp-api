@@ -41,6 +41,13 @@ if (!isGitHub) {
 }
 
 // 4. Event Listeners for Debugging
+
+// 3. Initialize Client
+const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: puppeteerConfig
+});
+
 client.on('qr', (qr) => {
     qrcode.generate(qr, { small: true });
     console.log('⚠️ Session expired or missing! Scan this QR code to authenticate.');
