@@ -1,24 +1,20 @@
 name: Daily Cafeteria Report Bot
 on:
   schedule:
-    - cron: '45 16 * * *' # 4:45 PM UTC translates exactly to 10:15 PM IST Daily
-  workflow_dispatch:      # This enables the manual test run button!
-
-# Force the actions environment to run cleanly on Node 24 to clear warnings
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    - cron: '45 16 * * *' # 10:15 PM IST Daily
+  workflow_dispatch:      # Manual trigger button
 
 jobs:
   send-report:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # Maintained version
 
       - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '24' # Upgraded from '20'
+          node-version: '24'
 
       - name: Install Google Chrome (for WhatsApp)
         run: |
