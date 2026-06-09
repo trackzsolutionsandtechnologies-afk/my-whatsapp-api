@@ -19,7 +19,7 @@ const puppeteerConfig = {
         '--no-zygote',
         '--single-process',
         '--disable-extensions',
-        // Critical flags to completely bypass Chrome's aggressive frame detachment bugs:
+        // 🌟 CRITICAL CLOUD STABILIZATION FLAGS: Stops Chromium from detaching/dropping frames on GitHub Actions
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-features=MemorySaverMode',
         '--memory-pressure-off'
@@ -48,7 +48,7 @@ client.on('qr', (qr) => {
 client.on('ready', () => {
     console.log('✅ WhatsApp Connected');
 
-    // Send immediately on startup to test WhatsApp delivery to all numbers
+    // Send immediately on startup to test WhatsApp delivery to all recipients
     sendCafeteriaReport();
 
     // Start the 10:15 PM WhatsApp Scheduler
@@ -111,25 +111,40 @@ async function fetchCafeteriaReport() {
     }
 }
 
-// 5. Send Function (Loops through multiple numbers)
+// 5. Send Function (Loops through multiple numbers & resolves group link)
 async function sendCafeteriaReport() {
-    const targetNumbers = [
+    const targetRecipients = [
         '919447064822@c.us',
         '918157966696@c.us',
         '919656290644@c.us',
-        '919446334822@c.us'
+        '919446334822@c.us',
+        'https://chat.whatsapp.com/JVmWL2dyJuY8I0WlqNLscI?mode=gi_t' // 👈 Your Group Invite Link added smoothly
     ];
 
     console.log('🚀 Generating report for recipients...');
     const report = await fetchCafeteriaReport();
 
-    // Loop through each number and send the message individually
-    for (const number of targetNumbers) {
+    // Loop through each recipient entry (handles individual chats and group invites seamlessly)
+    for (const recipient of targetRecipients) {
         try {
-            await client.sendMessage(number, report.msg);
-            console.log(`✅ Message sent successfully to ${number} at ${new Date().toLocaleTimeString()}`);
+            let targetId = recipient;
+
+            // Check if the recipient entry is a group invite link
+            if (recipient.includes('chat.whatsapp.com/')) {
+                // Extracts the invite code out cleanly (stops before the query flags)
+                const inviteCode = recipient.split('chat.whatsapp.com/')[1].split('?')[0].trim();
+                console.log(`🔗 Resolving group link code: ${inviteCode}`);
+
+                // Joins the group automatically if not joined, and converts link to an internal target group ID (@g.us)
+                targetId = await client.acceptInvite(inviteCode);
+                console.log(`✅ Group ID resolved: ${targetId}`);
+            }
+
+            // Send the message to the number or group ID
+            await client.sendMessage(targetId, report.msg);
+            console.log(`✅ Message sent successfully to ${targetId} at ${new Date().toLocaleTimeString()}`);
         } catch (err) {
-            console.error(`❌ Failed to send WhatsApp message to ${number}:`, err.message);
+            console.error(`❌ Failed to send WhatsApp message to ${recipient}:`, err.message);
         }
     }
 
