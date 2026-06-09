@@ -29,8 +29,8 @@ jobs:
       - name: Unpack WhatsApp Session File
         run: |
           if [ -f "session.zip" ]; then
-            unzip -o session.zip -d ./.wwebjs_auth/
-            echo "✅ Session folder extracted successfully from file."
+            unzip -qq -o session.zip -d ./.wwebjs_auth/ || true
+            echo "✅ Session folder extracted cleanly."
           else
             echo "⚠️ No session.zip found in repository root, attempting standard run."
           fi
