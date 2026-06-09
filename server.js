@@ -22,7 +22,11 @@ if (process.env.WHATSAPP_SESSION_DATA) {
     }
 }
 // 2. Determine Puppeteer Configuration dynamically based on OS
-const isGitHub = !!process.env.WHATSAPP_SESSION_DATA;
+
+// Direct both environments to their exact browser locations
+// Check if running in GitHub Actions cloud or local Windows machine
+const isGitHub = !!process.env.GITHUB_ACTIONS;
+
 const puppeteerConfig = {
     headless: true,
     args: [
@@ -35,11 +39,11 @@ const puppeteerConfig = {
     ]
 };
 
-// Direct both environments to their exact browser locations
+// Explicitly assign the correct paths based on the actual environment
 if (isGitHub) {
-    puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable'; // Explicit Linux path
+    puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable'; // Clean Linux Path
 } else {
-    puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe'; // Your local path
+    puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe'; // Your local Windows Path
 }
 
 // 4. Event Listeners for Debugging
