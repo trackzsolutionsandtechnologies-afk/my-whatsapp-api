@@ -10,9 +10,10 @@ const fs = require('fs');
 const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
-    // Matches the headless architecture required by modern pinned chromium downloads
     headless: isGitHub ? 'new' : true,
     bypassCSP: true, 
+    // 🌟 THE CRITICAL FIX: Stops Puppeteer from timing out on headless cold-boots
+    protocolTimeout: 60000, 
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -29,8 +30,6 @@ const puppeteerConfig = {
 };
 
 if (isGitHub) {
-    // 🌟 THE FIX: Setting this to undefined forces Puppeteer to look directly 
-    // inside its own native cache for the matching Chrome binary we installed in the YAML
     puppeteerConfig.executablePath = undefined; 
 } else {
     puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
