@@ -11,23 +11,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Rolled back to 20 LTS for standard Puppeteer dependency harmony
+          node-version: '20' # Using 20 LTS for maximum library harmony
 
-      - name: Install System Sandbox Dependencies
+      - name: Install System Headless & Frame Buffer Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2t64 libnspr4 libnss3 libgbm1 ca-certificates \
-            fonts-liberation xdg-utils wget unzip
+          sudo apt-get install -y google-chrome-stable \
+            libasound2t64 libnspr4 libnss3 libgbm1 ca-certificates \
+            fonts-liberation xdg-utils wget unzip xvfb
 
       - name: Install Dependencies
         run: npm install
-
-      # 🌟 THE CRITICAL FIX: Forces Puppeteer to install a custom, perfectly matched browser copy
-      - name: Install Pinned Chromium Binary
-        run: npx puppeteer browsers install chrome
 
       - name: Unpack WhatsApp Session File
         run: |
@@ -39,8 +36,6 @@ jobs:
           fi
           exit 0
 
-      # 🌟 UPDATE THIS STEP: Inject the global timeout disable variable
-      - name: Execute Script
-        env:
-          PUPPETEER_DISABLE_TIMEOUT: "true"
-        run: node server.js
+      # 🌟 THE FIX: Wrap execution in xvfb-run to provide a virtual screen context
+      - name: Execute Script via Virtual Display
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" node server.js
