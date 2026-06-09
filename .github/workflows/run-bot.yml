@@ -1,0 +1,30 @@
+name: Daily Cafeteria Report Bot
+on:
+  schedule:
+    - cron: '45 16 * * *' # 4:45 PM UTC translates exactly to 10:15 PM IST Daily
+  workflow_dispatch:      # This enables the manual test run button!
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Google Chrome (for WhatsApp)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Execute Script
+        env:
+          WHATSAPP_SESSION_DATA: ${{ secrets.WHATSAPP_SESSION_TOKEN }}
+        run: node server.js
