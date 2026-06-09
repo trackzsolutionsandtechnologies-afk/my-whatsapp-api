@@ -26,7 +26,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Unpack WhatsApp Session File
+        run: |
+          if [ -f "session.zip" ]; then
+            unzip -o session.zip -d ./.wwebjs_auth/
+            echo "✅ Session folder extracted successfully from file."
+          else
+            echo "⚠️ No session.zip found in repository root, attempting standard run."
+          fi
+
       - name: Execute Script
-        env:
-          WHATSAPP_SESSION_DATA: ${{ secrets.WHATSAPP_SESSION_TOKEN }}
         run: node server.js
