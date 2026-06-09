@@ -4,6 +4,10 @@ on:
     - cron: '45 16 * * *' # 4:45 PM UTC translates exactly to 10:15 PM IST Daily
   workflow_dispatch:      # This enables the manual test run button!
 
+# Force the actions environment to run cleanly on Node 24 to clear warnings
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   send-report:
     runs-on: ubuntu-latest
@@ -11,10 +15,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24' # Upgraded from '20'
 
       - name: Install Google Chrome (for WhatsApp)
         run: |
