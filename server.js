@@ -6,14 +6,17 @@ const csv = require('csv-parser');
 const { Readable } = require('stream');
 const fs = require('fs');
 
+// 🌟 Clear internal event timeouts for slow container networks
+process.setMaxListeners(0);
+
 // 1. Determine Environment and Configuration dynamically based on OS
 const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
     headless: isGitHub ? 'new' : true,
     bypassCSP: true, 
-    // 🌟 THE CRITICAL FIX: Stops Puppeteer from timing out on headless cold-boots
-    protocolTimeout: 60000, 
+    // 🌟 Set to 0 to completely disable internal protocol connection timeouts
+    protocolTimeout: 0, 
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
