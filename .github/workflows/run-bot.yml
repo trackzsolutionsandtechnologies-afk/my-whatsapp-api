@@ -39,5 +39,8 @@ jobs:
           fi
           exit 0
 
+      # 🌟 UPDATE THIS STEP: Inject the global timeout disable variable
       - name: Execute Script
+        env:
+          PUPPETEER_DISABLE_TIMEOUT: "true"
         run: node server.js
