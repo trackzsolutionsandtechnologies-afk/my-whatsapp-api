@@ -10,7 +10,8 @@ const fs = require('fs');
 const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
-    headless: true,
+    // Uses the modern chrome headless engine architecture to match newer runner runtimes
+    headless: isGitHub ? 'new' : true,
     bypassCSP: true, 
     args: [
         '--no-sandbox',
@@ -22,7 +23,9 @@ const puppeteerConfig = {
         '--disable-web-security',
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-features=MemorySaverMode',
-        '--memory-pressure-off'
+        '--memory-pressure-off',
+        // Spoofs a standard Windows desktop browser signature to stop Chrome from forcing context reloads
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
     ]
 };
 
@@ -175,7 +178,6 @@ function startTerminalAutoRefresh(minutes) {
 // 7. Execution Entry with Execution Context Hold Loop
 console.log('🎬 Starting WhatsApp Web initialization sequence...');
 
-// Injecting a safe timeout delay for Cloud execution paths before initialization triggers
 if (isGitHub) {
     console.log('⏳ Cloud Environment detected. Holding process for 3000ms to allow local network pipelines to settle...');
     setTimeout(() => {
