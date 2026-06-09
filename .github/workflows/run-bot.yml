@@ -11,20 +11,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 24
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20' # Rolled back to 20 LTS for standard Puppeteer dependency harmony
 
-      - name: Install Google Chrome & Minimal Linux Sandbox Core
+      - name: Install System Sandbox Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y google-chrome-stable \
-            libasound2t64 libnspr4 libnss3 libgbm1 ca-certificates \
-            fonts-liberation xdg-utils wget
+          sudo apt-get install -y libasound2t64 libnspr4 libnss3 libgbm1 ca-certificates \
+            fonts-liberation xdg-utils wget unzip
 
       - name: Install Dependencies
         run: npm install
+
+      # 🌟 THE CRITICAL FIX: Forces Puppeteer to install a custom, perfectly matched browser copy
+      - name: Install Pinned Chromium Binary
+        run: npx puppeteer browsers install chrome
 
       - name: Unpack WhatsApp Session File
         run: |
