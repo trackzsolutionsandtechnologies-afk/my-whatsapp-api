@@ -5,26 +5,9 @@ const axios = require('axios');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
 const fs = require('fs');
-const { execSync } = require('child_process');
 
-// 1. GitHub Actions Session Extractor (Only triggers when running on GitHub Cloud)
-if (process.env.WHATSAPP_SESSION_DATA) {
-    console.log('📦 GitHub environment detected. Extracting session tokens...');
-    try {
-        fs.writeFileSync('session.zip', Buffer.from(process.env.WHATSAPP_SESSION_DATA, 'base64'));
-        if (!fs.existsSync('./.wwebjs_auth')) {
-            fs.mkdirSync('./.wwebjs_auth');
-        }
-        execSync('unzip -o session.zip -d ./.wwebjs_auth/');
-        console.log('✅ Session folder successfully extracted.');
-    } catch (error) {
-        console.error('❌ Failed to unpack WhatsApp session token:', error);
-    }
-}
-// 2. Determine Puppeteer Configuration dynamically based on OS
-
-// Direct both environments to their exact browser locations
-// Check if running in GitHub Actions cloud or local Windows machine
+// 1. Determine Environment and Configuration dynamically based on OS
+// Using the official GITHUB_ACTIONS environment variable directly
 const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
@@ -35,25 +18,26 @@ const puppeteerConfig = {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--no-zygote',
-        '--single-process'
+        '--single-process',
+        '--disable-extensions',
+        '--disable-features=IsolateOrigins,site-per-process' // Fixes the detached frame bug
     ]
 };
 
-// Explicitly assign the correct paths based on the actual environment
+// Explicitly assign the correct paths based on the active environment
 if (isGitHub) {
     puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable'; // Clean Linux Path
 } else {
     puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe'; // Your local Windows Path
 }
 
-// 4. Event Listeners for Debugging
-
-// 3. Initialize Client
+// 2. Initialize Client
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: puppeteerConfig
 });
 
+// 3. Event Listeners for Debugging
 client.on('qr', (qr) => {
     qrcode.generate(qr, { small: true });
     console.log('⚠️ Session expired or missing! Scan this QR code to authenticate.');
@@ -65,7 +49,7 @@ client.on('ready', () => {
     // Send immediately on startup to test WhatsApp delivery to all numbers
     sendCafeteriaReport();
 
-    // Start the 6:10 PM WhatsApp Scheduler
+    // Start the 10:15 PM WhatsApp Scheduler
     startScheduler();
 
     // Start the live terminal auto-refresh loop (Every 5 minutes)
@@ -75,7 +59,7 @@ client.on('ready', () => {
 client.on('auth_failure', (msg) => console.error('❌ Auth Failure:', msg));
 client.on('disconnected', (reason) => console.log('⚠️ Disconnected:', reason));
 
-// 5. Core Logic: Fetch, Process, and Log Data
+// 4. Core Logic: Fetch, Process, and Log Data
 async function fetchCafeteriaReport() {
     try {
         const tomorrow = new Date();
@@ -125,7 +109,7 @@ async function fetchCafeteriaReport() {
     }
 }
 
-// 6. Send Function (Loops through multiple numbers)
+// 5. Send Function (Loops through multiple numbers)
 async function sendCafeteriaReport() {
     const targetNumbers = [
         '919447064822@c.us',
@@ -148,13 +132,13 @@ async function sendCafeteriaReport() {
     }
 
     // Safe exit if running inside GitHub Action runner after executing task
-    if (process.env.WHATSAPP_SESSION_DATA) {
+    if (process.env.GITHUB_ACTIONS) {
         console.log('🏁 Task complete. Shutting down GitHub runner instance safely.');
         setTimeout(() => process.exit(0), 5000); // Give it 5 seconds to finish network packets
     }
 }
 
-// 7. Scheduler for WhatsApp Notification
+// 6. Scheduler for WhatsApp Notification
 function startScheduler() {
     cron.schedule('15 22 * * *', sendCafeteriaReport, { timezone: 'Asia/Kolkata' });
     console.log('📅 WhatsApp Scheduler Active (10:15 PM IST)');
@@ -163,7 +147,7 @@ function startScheduler() {
 // Helper function to auto-refresh terminal logs without messaging WhatsApp
 function startTerminalAutoRefresh(minutes) {
     // Disable logging loops if running a short-lived instance on GitHub Actions
-    if (process.env.WHATSAPP_SESSION_DATA) return;
+    if (process.env.GITHUB_ACTIONS) return;
 
     const intervalMs = minutes * 60 * 1000;
     console.log(`🔄 Terminal Auto-Refresh loop initialized. Checking every ${minutes} minutes.`);
