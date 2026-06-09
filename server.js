@@ -6,17 +6,16 @@ const csv = require('csv-parser');
 const { Readable } = require('stream');
 const fs = require('fs');
 
-// 🌟 Clear internal event timeouts for slow container networks
 process.setMaxListeners(0);
 
 // 1. Determine Environment and Configuration dynamically based on OS
 const isGitHub = !!process.env.GITHUB_ACTIONS;
 
 const puppeteerConfig = {
-    headless: isGitHub ? 'new' : true,
-    bypassCSP: true, 
-    // 🌟 Set to 0 to completely disable internal protocol connection timeouts
-    protocolTimeout: 0, 
+    // 🌟 CRITICAL CHANGE: When inside GitHub with XVFB, run headless: false.
+    // This forces Chrome to maintain a true window layout, preventing frame crashes.
+    headless: isGitHub ? false : true, 
+    bypassCSP: true,
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -25,15 +24,13 @@ const puppeteerConfig = {
         '--no-zygote',
         '--disable-extensions',
         '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--disable-features=MemorySaverMode',
-        '--memory-pressure-off',
         '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
     ]
 };
 
 if (isGitHub) {
-    puppeteerConfig.executablePath = undefined; 
+    // Point directly back to the stable system binary we installed via apt
+    puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable';
 } else {
     puppeteerConfig.executablePath = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 }
@@ -49,6 +46,10 @@ const client = new Client({
     }
 });
 
+// =========================================================================
+// Keep the rest of your file (Events, Fetch, Send, Scheduler) EXACTLY the same
+// =========================================================================
+
 // 3. Event Listeners for Debugging
 client.on('qr', (qr) => {
     qrcode.generate(qr, { small: true });
@@ -57,33 +58,24 @@ client.on('qr', (qr) => {
 
 client.on('ready', () => {
     console.log('✅ WhatsApp Connected');
-
-    // Send immediately on startup to test WhatsApp delivery to all recipients
     sendCafeteriaReport();
-
-    // Start the 10:15 PM WhatsApp Scheduler
     startScheduler();
-
-    // Start the live terminal auto-refresh loop (Every 5 minutes)
     startTerminalAutoRefresh(5);
 });
 
 client.on('auth_failure', (msg) => console.error('❌ Auth Failure:', msg));
 client.on('disconnected', (reason) => console.log('⚠️ Disconnected:', reason));
 
-// 4. Core Logic: Fetch, Process, and Log Data
 async function fetchCafeteriaReport() {
     try {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-
         const year = tomorrow.getFullYear();
         const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
         const day = String(tomorrow.getDate()).padStart(2, '0');
         const targetDate = `${year}-${month}-${day}`;
 
         const response = await axios.get('https://sgs.trackmyschoolonline.com/inventoryCafeteriaReportView.php', { timeout: 30000 });
-
         const rows = [];
         await new Promise((resolve, reject) => {
             Readable.from(response.data)
@@ -114,14 +106,12 @@ async function fetchCafeteriaReport() {
             msg += `🔸 ${item}: *${qty}*\n`;
         });
         msg += `────────────────────\n📦 *Total Orders:* ${reportData.length}`;
-
         return { msg, count: reportData.length };
     } catch (err) {
         return { msg: `❌ *Error fetching report:* ${err.message}`, count: -1 };
     }
 }
 
-// 5. Send Function (Loops through multiple numbers & resolves group link)
 async function sendCafeteriaReport() {
     const targetRecipients = [
         '919447064822@c.us',
@@ -137,14 +127,12 @@ async function sendCafeteriaReport() {
     for (const recipient of targetRecipients) {
         try {
             let targetId = recipient;
-
             if (recipient.includes('chat.whatsapp.com/')) {
                 const inviteCode = recipient.split('chat.whatsapp.com/')[1].split('?')[0].trim();
                 console.log(`🔗 Resolving group link code: ${inviteCode}`);
                 targetId = await client.acceptInvite(inviteCode);
                 console.log(`✅ Group ID resolved: ${targetId}`);
             }
-
             await client.sendMessage(targetId, report.msg);
             console.log(`✅ Message sent successfully to ${targetId} at ${new Date().toLocaleTimeString()}`);
         } catch (err) {
@@ -158,19 +146,15 @@ async function sendCafeteriaReport() {
     }
 }
 
-// 6. Scheduler for WhatsApp Notification
 function startScheduler() {
     cron.schedule('15 22 * * *', sendCafeteriaReport, { timezone: 'Asia/Kolkata' });
     console.log('📅 WhatsApp Scheduler Active (10:15 PM IST)');
 }
 
-// Helper function to auto-refresh terminal logs
 function startTerminalAutoRefresh(minutes) {
     if (process.env.GITHUB_ACTIONS) return;
-
     const intervalMs = minutes * 60 * 1000;
     console.log(`🔄 Terminal Auto-Refresh loop initialized. Checking every ${minutes} minutes.`);
-
     setInterval(async () => {
         console.log(`\n⏱️ [${new Date().toLocaleTimeString()}] Auto-refreshing data from server...`);
         const report = await fetchCafeteriaReport();
@@ -178,20 +162,8 @@ function startTerminalAutoRefresh(minutes) {
     }, intervalMs);
 }
 
-// 7. Execution Entry with Execution Context Hold Loop
 console.log('🎬 Starting WhatsApp Web initialization sequence...');
-
-if (isGitHub) {
-    console.log('⏳ Cloud Environment detected. Holding process for 3000ms to allow local network pipelines to settle...');
-    setTimeout(() => {
-        client.initialize().catch(err => {
-            console.error('❌ Critical Initialization Failure:', err.message);
-            process.exit(1);
-        });
-    }, 3000);
-} else {
-    client.initialize().catch(err => {
-        console.error('❌ Critical Initialization Failure:', err.message);
-        process.exit(1);
-    });
-}
+client.initialize().catch(err => {
+    console.error('❌ Critical Initialization Failure:', err.message);
+    process.exit(1);
+});
